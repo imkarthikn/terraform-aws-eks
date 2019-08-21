@@ -244,7 +244,7 @@ resource "random_pet" "workers" {
       compact(
         [
           aws_launch_configuration.workers[count.index].name,
-          aws_launch_configuration.workers[count.index].latest_version
+          aws_launch_configuration.workers[count.index].id
         ]
       )
     )
