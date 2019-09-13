@@ -113,6 +113,11 @@ data "template_file" "userdata" {
       "kubelet_extra_args",
       local.workers_group_defaults["kubelet_extra_args"],
     )
+    docker_extra_args = lookup(
+      var.worker_groups[count.index],
+      "docker_extra_args",
+      local.workers_group_defaults["docker_extra_args"],
+    )
   }
 }
 
@@ -209,4 +214,3 @@ data "aws_iam_instance_profile" "custom_worker_group_launch_template_mixed_iam_i
     local.workers_group_defaults["iam_instance_profile_name"],
   )
 }
-
