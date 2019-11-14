@@ -17,8 +17,7 @@ echo "${null_resource.update_config_map_aws_auth[0].triggers.kube_config_map_ren
 echo "${null_resource.update_config_map_aws_auth[0].triggers.config_map_rendered}" > aws_auth_configmap.yaml & \
 kubectl apply -f aws_auth_configmap.yaml --kubeconfig kube_config.yaml && break || \
 sleep 10; \
-done; \
-rm aws_auth_configmap.yaml kube_config.yaml;
+done;
 EOS
 
 
@@ -28,6 +27,53 @@ EOS
   triggers = {
     kube_config_map_rendered = data.template_file.kubeconfig.rendered
     config_map_rendered      = data.template_file.config_map_aws_auth.rendered
+    endpoint                 = aws_eks_cluster.this.endpoint
+  }
+}
+
+resource "null_resource" "add_kubeconfig_to_s3" {
+  depends_on = [null_resource.update_config_map_aws_auth]
+
+  provisioner "local-exec" {
+    working_dir = path.module
+
+    command = <<EOS
+for i in `seq 1 10`; do \
+aws s3 cp ./kube_config.yaml s3://k8s-config-hub/clusters/"${var.cluster_name}"/config && break || \
+sleep 10; \
+done; \
+EOS
+
+
+    interpreter = var.local_exec_interpreter
+  }
+
+  triggers = {
+    kube_config_map_rendered = data.template_file.kubeconfig.rendered
+    endpoint                 = aws_eks_cluster.this.endpoint
+  }
+}
+
+resource "null_resource" "setup_supertiller_kube_tools" {
+  depends_on = [null_resource.add_kubeconfig_to_s3]
+
+  provisioner "local-exec" {
+    working_dir = path.module
+
+    command = <<EOS
+for i in `seq 1 10`; do \
+cp ./kube_config.yaml ~/.kube/config && kubectl create namespace kube-tools && kubectl apply -f /tiller && \
+helm init --tiller-namespace=kube-tools --service-account=tiller && break || \
+sleep 10; \
+done; \
+EOS
+
+
+    interpreter = var.local_exec_interpreter
+  }
+
+  triggers = {
+    kube_config_map_rendered = data.template_file.kubeconfig.rendered
     endpoint                 = aws_eks_cluster.this.endpoint
   }
 }
