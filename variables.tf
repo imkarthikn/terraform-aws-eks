@@ -43,6 +43,12 @@ variable "write_kubeconfig" {
   default     = true
 }
 
+variable "production" {
+  description = "Determines production bucket suffix, if nonprod leave blank otherwise set to '-prod' "
+  type        = string
+  default     = ""
+}
+
 variable "manage_aws_auth" {
   description = "Whether to apply the aws-auth configmap file."
   default     = true

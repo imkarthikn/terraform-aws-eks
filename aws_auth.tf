@@ -39,7 +39,7 @@ resource "null_resource" "add_kubeconfig_to_s3" {
 
     command = <<EOS
 for i in `seq 1 10`; do \
-aws s3 cp ./kube_config.yaml s3://k8s-config-hub/clusters/"${var.cluster_name}"/config && break || \
+aws s3 cp ./kube_config.yaml s3://k8s-config-hub"${var.production}"/clusters/"${var.cluster_name}"/config && break || \
 sleep 10; \
 done; \
 EOS
@@ -64,6 +64,29 @@ resource "null_resource" "setup_supertiller_kube_tools" {
 for i in `seq 1 10`; do \
 cp ./kube_config.yaml ~/.kube/config && kubectl create namespace kube-tools && kubectl apply -f /tiller && \
 helm init --tiller-namespace=kube-tools --service-account=tiller && break || \
+sleep 10; \
+done; \
+EOS
+
+
+    interpreter = var.local_exec_interpreter
+  }
+
+  triggers = {
+    kube_config_map_rendered = data.template_file.kubeconfig.rendered
+    endpoint                 = aws_eks_cluster.this.endpoint
+  }
+}
+
+resource "null_resource" "add_sealed_secret_key" {
+  depends_on = [null_resource.setup_supertiller_kube_tools]
+
+  provisioner "local-exec" {
+    working_dir = path.module
+
+    command = <<EOS
+for i in `seq 1 10`; do \
+aws s3 cp s3://k8s-mystika"${var.production}"/sealed-secrets-key.json ./private-key.json && kubectl apply -f ./private-key.json && break || \
 sleep 10; \
 done; \
 EOS
