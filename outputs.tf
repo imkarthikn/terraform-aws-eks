@@ -119,6 +119,11 @@ output "worker_iam_instance_profile_names" {
   value       = aws_iam_instance_profile.workers.*.name
 }
 
+output "cluster_oidc_issuer_url" {
+  description = "The URL on the EKS cluster OIDC Issuer"
+  value       = flatten(concat(aws_eks_cluster.this[*].identity[*].oidc.0.issuer, [""]))[0]
+}
+
 output "worker_iam_role_name" {
   description = "default IAM role name for EKS worker groups"
   value = coalescelist(
